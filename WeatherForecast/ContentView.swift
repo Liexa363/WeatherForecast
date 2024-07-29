@@ -8,47 +8,32 @@
 import SwiftUI
 
 struct ContentView: View {
-    @ObservedObject var viewModel = WeatherViewModel()
-
+    @StateObject var viewModel = WeatherViewModel()
+    @StateObject var selectionManager = SelectionManager()
+    
     var body: some View {
-        NavigationView {
-            VStack {
-                TextField("Enter city", text: $viewModel.city, onCommit: {
-                    viewModel.fetchWeather(for: viewModel.city)
-                })
-                .onSubmit {
-                    viewModel.city = ""
+        TabView(selection: $selectionManager.selectedTab) {
+            HomeView(viewModel: viewModel)
+                .tabItem {
+                    Image(systemName: "house.fill")
+                    Text("Home")
                 }
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
+                .tag(0)
+            
+            CitySearchView(viewModel: viewModel)
+                .environmentObject(selectionManager)
+                .tabItem {
+                    Image(systemName: "magnifyingglass")
+                    Text("Search")
                 }
-
-                if !viewModel.cityName.isEmpty {
-                    Text(viewModel.cityName)
-                        .font(.largeTitle)
-                        .padding()
-                }
-
-                List(viewModel.weatherData) { weather in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(weather.date)
-                                .font(.headline)
-                            Text("\(String(weather.temperature))°C")
-                            Text(weather.description)
-                        }
-                        Spacer()
-                        Image(systemName: weather.imageName)
-                            .resizable()
-                            .frame(width: 50, height: 50)
-                    }
-                }
-                .navigationBarTitle("Weather Forecast")
-            }
+                .tag(1)
+        }
+        .alert(item: $viewModel.errorMessage) { errorMessage in
+            Alert(title: Text("Error"), message: Text(errorMessage.message), dismissButton: .default(Text("OK")))
+        }
+        .onAppear {
+            viewModel.selectionManager = selectionManager
+            viewModel.requestUserLocation()
         }
     }
 }
@@ -56,3 +41,4 @@ struct ContentView: View {
 #Preview {
     ContentView()
 }
+
